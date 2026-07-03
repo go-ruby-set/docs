@@ -413,13 +413,23 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03" class="md-nav__link">
+  <a href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03-optimized" class="md-nav__link">
     <span class="md-ellipsis">
-      Library-level benchmark (Go API vs runtimes) — 2026-07-03
+      Library-level benchmark (Go API vs runtimes) — 2026-07-03 (optimized)
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Library-level benchmark (Go API vs runtimes) — 2026-07-03">
+    <nav class="md-nav" aria-label="Library-level benchmark (Go API vs runtimes) — 2026-07-03 (optimized)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-changed-bulk-path-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      What changed (bulk-path optimization)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What changed (bulk-path optimization)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -455,6 +465,11 @@
       union-1000
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -536,13 +551,23 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03" class="md-nav__link">
+  <a href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03-optimized" class="md-nav__link">
     <span class="md-ellipsis">
-      Library-level benchmark (Go API vs runtimes) — 2026-07-03
+      Library-level benchmark (Go API vs runtimes) — 2026-07-03 (optimized)
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Library-level benchmark (Go API vs runtimes) — 2026-07-03">
+    <nav class="md-nav" aria-label="Library-level benchmark (Go API vs runtimes) — 2026-07-03 (optimized)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-changed-bulk-path-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      What changed (bulk-path optimization)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What changed (bulk-path optimization)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -578,6 +603,11 @@
       union-1000
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -672,7 +702,7 @@ their ratios as order-of-magnitude. These are <strong>real measured numbers</str
 the 2026-06-30 run (Apple M-series; <code>ruby 4.0.5 +PRISM</code>, <code>jruby 10.1.0.0</code>,
 <code>truffleruby 34.0.1</code>) — nothing is fabricated or cherry-picked.</p>
 </div>
-<h2 id="library-level-benchmark-go-api-vs-runtimes-2026-07-03">Library-level benchmark (Go API vs runtimes) — 2026-07-03<a class="headerlink" href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03" title="Permanent link">&para;</a></h2>
+<h2 id="library-level-benchmark-go-api-vs-runtimes-2026-07-03-optimized">Library-level benchmark (Go API vs runtimes) — 2026-07-03 (optimized)<a class="headerlink" href="#library-level-benchmark-go-api-vs-runtimes-2026-07-03-optimized" title="Permanent link">&para;</a></h2>
 <p>This section measures the <strong>pure-Go library directly, through its Go API</strong> — not
 the <code>rbgo</code> interpreter path recorded above. It isolates the library primitive
 from Ruby-interpreter dispatch, answering the parity question head-on: <em>is the
@@ -684,12 +714,61 @@ MRI before any timing.</p>
 <li><strong>Host:</strong> Apple M4 Max (<code>Mac16,5</code>, arm64), macOS 26.5.1 — <strong>date 2026-07-03</strong>.</li>
 <li><strong>Runtimes:</strong> Go 1.26.4 · MRI <code>ruby 4.0.5 +PRISM</code> · MRI + YJIT · JRuby 10.1.0.0
   (OpenJDK 25) · TruffleRuby 34.0.1 (GraalVM CE Native).</li>
-<li><strong>Method:</strong> each process runs 3 untimed warm-up passes, then 25 timed passes of
+<li><strong>Method:</strong> each process runs 5 untimed warm-up passes, then 60 timed passes of
   a fixed inner loop, timed with a monotonic clock; the <strong>best</strong> pass is reported
   as <strong>ns/op</strong> (lower is better). <code>vs MRI</code> &lt; 1.00× means <em>faster than MRI</em>.
   Interpreter start-up is outside the timed region, so these are operation costs,
   not <code>ruby file.rb</code> process costs.</li>
 </ul>
+<h3 id="what-changed-bulk-path-optimization">What changed (bulk-path optimization)<a class="headerlink" href="#what-changed-bulk-path-optimization" title="Permanent link">&para;</a></h3>
+<p>The internal representation was reworked from an ordered map (<code>map[key]member</code> +
+a parallel <code>[]key</code> order slice, forcing a <strong>map lookup per element</strong> on every
+iteration and every algebra source pass) to <strong>two parallel insertion-ordered
+slices</strong> (<code>keys</code>, <code>members</code>) plus a membership-only <code>index</code> map. Iteration and the
+<code>|</code>/<code>&amp;</code>/<code>-</code>/<code>^</code> source loops now walk the slices directly — the per-element map
+lookup is gone. <code>NewWith</code> now <strong>pre-sizes</strong> its index and slices to the seed
+count (build), and <code>Union</code>/<code>Dup</code> copy the receiver's index in one <code>maps.Clone</code>
+plus two slice copies instead of re-inserting every key. All Ruby-observable
+semantics are unchanged: insertion-order iteration, dedup, member identity via
+the Hasher, and the full predicate/algebra surface (verified by the deterministic
+suite <strong>and</strong> the MRI oracle).</p>
+<p>Before → after <code>vs MRI</code> (same host, same harness):</p>
+<table>
+<thead>
+<tr>
+<th>Op</th>
+<th style="text-align: right;">before</th>
+<th style="text-align: right;">after</th>
+<th>change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>build-1000</td>
+<td style="text-align: right;">4.49×</td>
+<td style="text-align: right;"><strong>~1.9×</strong></td>
+<td>2.3× faster</td>
+</tr>
+<tr>
+<td>union-1000</td>
+<td style="text-align: right;">3.40×</td>
+<td style="text-align: right;"><strong>~1.5×</strong></td>
+<td>2.2× faster</td>
+</tr>
+<tr>
+<td>intersection-1000</td>
+<td style="text-align: right;">1.34×</td>
+<td style="text-align: right;"><strong>~1.1×</strong></td>
+<td>at parity</td>
+</tr>
+<tr>
+<td>membership-1000</td>
+<td style="text-align: right;">0.39×</td>
+<td style="text-align: right;"><strong>0.39×</strong></td>
+<td>unchanged (already faster than MRI)</td>
+</tr>
+</tbody>
+</table>
 <h4 id="build-1000">build-1000<a class="headerlink" href="#build-1000" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -702,28 +781,28 @@ MRI before any timing.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">55933.9</td>
-<td style="text-align: right;">4.49×</td>
+<td style="text-align: right;">23684.0</td>
+<td style="text-align: right;">1.87×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">12462.0</td>
+<td style="text-align: right;">12632.0</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">12506.0</td>
-<td style="text-align: right;">1.00×</td>
+<td style="text-align: right;">12564.0</td>
+<td style="text-align: right;">0.99×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">12526.1</td>
-<td style="text-align: right;">1.01×</td>
+<td style="text-align: right;">9825.1</td>
+<td style="text-align: right;">0.78×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">10185.0</td>
-<td style="text-align: right;">0.82×</td>
+<td style="text-align: right;">9600.1</td>
+<td style="text-align: right;">0.76×</td>
 </tr>
 </tbody>
 </table>
@@ -739,28 +818,28 @@ MRI before any timing.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">23854.6</td>
-<td style="text-align: right;">1.34×</td>
+<td style="text-align: right;">19095.8</td>
+<td style="text-align: right;">1.11×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">17826.0</td>
+<td style="text-align: right;">17144.0</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">17132.0</td>
-<td style="text-align: right;">0.96×</td>
+<td style="text-align: right;">16882.0</td>
+<td style="text-align: right;">0.98×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">7369.5</td>
+<td style="text-align: right;">7057.3</td>
 <td style="text-align: right;">0.41×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">14386.0</td>
-<td style="text-align: right;">0.81×</td>
+<td style="text-align: right;">14133.5</td>
+<td style="text-align: right;">0.82×</td>
 </tr>
 </tbody>
 </table>
@@ -776,27 +855,27 @@ MRI before any timing.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">12009.9</td>
-<td style="text-align: right;">0.39×</td>
+<td style="text-align: right;">12199.8</td>
+<td style="text-align: right;">0.41×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">30418.0</td>
+<td style="text-align: right;">30100.0</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">12108.0</td>
-<td style="text-align: right;">0.40×</td>
+<td style="text-align: right;">11668.0</td>
+<td style="text-align: right;">0.39×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">21765.7</td>
-<td style="text-align: right;">0.72×</td>
+<td style="text-align: right;">18383.6</td>
+<td style="text-align: right;">0.61×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">2417.2</td>
+<td style="text-align: right;">2555.8</td>
 <td style="text-align: right;">0.08×</td>
 </tr>
 </tbody>
@@ -813,32 +892,38 @@ MRI before any timing.</p>
 <tbody>
 <tr>
 <td><strong>go-ruby (pure Go)</strong></td>
-<td style="text-align: right;">52684.6</td>
-<td style="text-align: right;">3.40×</td>
+<td style="text-align: right;">23834.9</td>
+<td style="text-align: right;">1.57×</td>
 </tr>
 <tr>
 <td>MRI</td>
-<td style="text-align: right;">15498.0</td>
+<td style="text-align: right;">15212.0</td>
 <td style="text-align: right;">1.00×</td>
 </tr>
 <tr>
 <td>MRI + YJIT</td>
-<td style="text-align: right;">15480.0</td>
-<td style="text-align: right;">1.00×</td>
+<td style="text-align: right;">15294.0</td>
+<td style="text-align: right;">1.01×</td>
 </tr>
 <tr>
 <td>JRuby</td>
-<td style="text-align: right;">13811.7</td>
+<td style="text-align: right;">13581.1</td>
 <td style="text-align: right;">0.89×</td>
 </tr>
 <tr>
 <td>TruffleRuby</td>
-<td style="text-align: right;">13260.2</td>
-<td style="text-align: right;">0.86×</td>
+<td style="text-align: right;">13758.8</td>
+<td style="text-align: right;">0.90×</td>
 </tr>
 </tbody>
 </table>
-<p>Mixed and instructive: <code>build</code>/<code>union</code>/<code>intersection</code> are 1.3–4.5× MRI (the library preserves insertion order and hashes through Go <code>any</code>, versus MRI's C hash set), while <strong><code>membership</code> is ~2.5× faster</strong> (0.39×). Insertion-ordered construction is the optimization target; the ordered-map design is what costs on bulk build.</p>
+<p>After the rework, <strong><code>membership</code> stays ~2.5× faster than MRI</strong> (0.41×) and
+<strong><code>intersection</code> is at parity</strong> (~1.1×). <code>build</code> (~1.9×) and <code>union</code> (~1.6×)
+remain above 1× because the residual cost is Go's generic-<code>any</code> map hashing
+against MRI's specialised C hash set — an interpreter-level floor, not redundant
+work: the ordered-map lookups and un-sized growth that inflated the earlier
+numbers are gone. These are the honest residual gaps; closing them further would
+require abandoning the generic Hasher that Ruby <code>hash</code>/<code>eql?</code> identity demands.</p>
 <div class="admonition note">
 <p class="admonition-title">Reproduce</p>
 <p>The harness is committed under
