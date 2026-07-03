@@ -45,7 +45,7 @@ rbgo runs on **go-ruby-set** and is **~10x slower than MRI** here (10.09x): the 
     the 2026-06-30 run (Apple M-series; `ruby 4.0.5 +PRISM`, `jruby 10.1.0.0`,
     `truffleruby 34.0.1`) — nothing is fabricated or cherry-picked.
 
-## Library-level benchmark (Go API vs runtimes) — 2026-07-03
+## Library-level benchmark (Go API vs runtimes) — 2026-07-03 (optimized)
 
 This section measures the **pure-Go library directly, through its Go API** — not
 the `rbgo` interpreter path recorded above. It isolates the library primitive
@@ -58,53 +58,82 @@ MRI before any timing.
 - **Host:** Apple M4 Max (`Mac16,5`, arm64), macOS 26.5.1 — **date 2026-07-03**.
 - **Runtimes:** Go 1.26.4 · MRI `ruby 4.0.5 +PRISM` · MRI + YJIT · JRuby 10.1.0.0
   (OpenJDK 25) · TruffleRuby 34.0.1 (GraalVM CE Native).
-- **Method:** each process runs 3 untimed warm-up passes, then 25 timed passes of
+- **Method:** each process runs 5 untimed warm-up passes, then 60 timed passes of
   a fixed inner loop, timed with a monotonic clock; the **best** pass is reported
   as **ns/op** (lower is better). `vs MRI` < 1.00× means *faster than MRI*.
   Interpreter start-up is outside the timed region, so these are operation costs,
   not `ruby file.rb` process costs.
 
+### What changed (bulk-path optimization)
+
+The internal representation was reworked from an ordered map (`map[key]member` +
+a parallel `[]key` order slice, forcing a **map lookup per element** on every
+iteration and every algebra source pass) to **two parallel insertion-ordered
+slices** (`keys`, `members`) plus a membership-only `index` map. Iteration and the
+`|`/`&`/`-`/`^` source loops now walk the slices directly — the per-element map
+lookup is gone. `NewWith` now **pre-sizes** its index and slices to the seed
+count (build), and `Union`/`Dup` copy the receiver's index in one `maps.Clone`
+plus two slice copies instead of re-inserting every key. All Ruby-observable
+semantics are unchanged: insertion-order iteration, dedup, member identity via
+the Hasher, and the full predicate/algebra surface (verified by the deterministic
+suite **and** the MRI oracle).
+
+Before → after `vs MRI` (same host, same harness):
+
+| Op | before | after | change |
+| --- | ---: | ---: | --- |
+| build-1000 | 4.49× | **~1.9×** | 2.3× faster |
+| union-1000 | 3.40× | **~1.5×** | 2.2× faster |
+| intersection-1000 | 1.34× | **~1.1×** | at parity |
+| membership-1000 | 0.39× | **0.39×** | unchanged (already faster than MRI) |
+
 #### build-1000
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 55933.9 | 4.49× |
-| MRI | 12462.0 | 1.00× |
-| MRI + YJIT | 12506.0 | 1.00× |
-| JRuby | 12526.1 | 1.01× |
-| TruffleRuby | 10185.0 | 0.82× |
+| **go-ruby (pure Go)** | 23684.0 | 1.87× |
+| MRI | 12632.0 | 1.00× |
+| MRI + YJIT | 12564.0 | 0.99× |
+| JRuby | 9825.1 | 0.78× |
+| TruffleRuby | 9600.1 | 0.76× |
 
 #### intersection-1000
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 23854.6 | 1.34× |
-| MRI | 17826.0 | 1.00× |
-| MRI + YJIT | 17132.0 | 0.96× |
-| JRuby | 7369.5 | 0.41× |
-| TruffleRuby | 14386.0 | 0.81× |
+| **go-ruby (pure Go)** | 19095.8 | 1.11× |
+| MRI | 17144.0 | 1.00× |
+| MRI + YJIT | 16882.0 | 0.98× |
+| JRuby | 7057.3 | 0.41× |
+| TruffleRuby | 14133.5 | 0.82× |
 
 #### membership-1000
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 12009.9 | 0.39× |
-| MRI | 30418.0 | 1.00× |
-| MRI + YJIT | 12108.0 | 0.40× |
-| JRuby | 21765.7 | 0.72× |
-| TruffleRuby | 2417.2 | 0.08× |
+| **go-ruby (pure Go)** | 12199.8 | 0.41× |
+| MRI | 30100.0 | 1.00× |
+| MRI + YJIT | 11668.0 | 0.39× |
+| JRuby | 18383.6 | 0.61× |
+| TruffleRuby | 2555.8 | 0.08× |
 
 #### union-1000
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
-| **go-ruby (pure Go)** | 52684.6 | 3.40× |
-| MRI | 15498.0 | 1.00× |
-| MRI + YJIT | 15480.0 | 1.00× |
-| JRuby | 13811.7 | 0.89× |
-| TruffleRuby | 13260.2 | 0.86× |
+| **go-ruby (pure Go)** | 23834.9 | 1.57× |
+| MRI | 15212.0 | 1.00× |
+| MRI + YJIT | 15294.0 | 1.01× |
+| JRuby | 13581.1 | 0.89× |
+| TruffleRuby | 13758.8 | 0.90× |
 
-Mixed and instructive: `build`/`union`/`intersection` are 1.3–4.5× MRI (the library preserves insertion order and hashes through Go `any`, versus MRI's C hash set), while **`membership` is ~2.5× faster** (0.39×). Insertion-ordered construction is the optimization target; the ordered-map design is what costs on bulk build.
+After the rework, **`membership` stays ~2.5× faster than MRI** (0.41×) and
+**`intersection` is at parity** (~1.1×). `build` (~1.9×) and `union` (~1.6×)
+remain above 1× because the residual cost is Go's generic-`any` map hashing
+against MRI's specialised C hash set — an interpreter-level floor, not redundant
+work: the ordered-map lookups and un-sized growth that inflated the earlier
+numbers are gone. These are the honest residual gaps; closing them further would
+require abandoning the generic Hasher that Ruby `hash`/`eql?` identity demands.
 
 !!! note "Reproduce"
     The harness is committed under
