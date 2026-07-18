@@ -2,3 +2,5 @@ github.com/go-ruby-set/set v0.0.0-20260630204346-ab6a8a92a910 h1:Q41u365suJ1TlrX
 github.com/go-ruby-set/set v0.0.0-20260630204346-ab6a8a92a910/go.mod h1:F/P0PXeE5ybEPeWYfb1JAKWny1Li3dnlm6YxG2/vffE=
 github.com/go-ruby-set/set v0.0.0-20260703173733-2d4cab35516f h1:sP46XHo6yeveUAqP7Gccp+X1qJ1pc04PeIyp5lFe/YQ=
 github.com/go-ruby-set/set v0.0.0-20260703173733-2d4cab35516f/go.mod h1:F/P0PXeE5ybEPeWYfb1JAKWny1Li3dnlm6YxG2/vffE=
+github.com/go-ruby-set/set v0.0.0-20260717074035-1da624a8b0b2 h1:5cD4carf4EMh0969Mb13rUzYe5cj9mcIpoF7BuhCmJs=
+github.com/go-ruby-set/set v0.0.0-20260717074035-1da624a8b0b2/go.mod h1:F/P0PXeE5ybEPeWYfb1JAKWny1Li3dnlm6YxG2/vffE=
