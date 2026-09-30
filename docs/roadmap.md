@@ -19,8 +19,9 @@ These are **deliberate**, recorded so the module's surface is unambiguous:
 
 - **No interpreter.** The library implements the deterministic algorithm; it
   never runs arbitrary Ruby. Anything that needs a live binding or evaluation is
-  the consumer's job — that is why `rbgo` binds this module rather than the
-  reverse.
+  the consumer's job — which is why an interpreter binds this module rather than
+  the reverse. (`rbgo` did until 2026-08-08; see
+  [why.md](why.md) and [rbgo#747](https://github.com/go-embedded-ruby/ruby/issues/747).)
 - **Reference is reference Ruby (MRI).** Byte-for-byte conformance targets MRI's
   behaviour; differences across MRI releases are matched to the reference used by
   the differential oracle.

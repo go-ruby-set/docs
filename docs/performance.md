@@ -1,15 +1,29 @@
 # Performance
 
-`go-ruby-set/set` is the pure-Go library that
-[`rbgo`](https://github.com/go-embedded-ruby/ruby) binds for Ruby's `set`. This
-page records a **comparative benchmark** of that module against the reference
-Ruby runtimes, part of the ecosystem-wide per-module parity suite.
+`go-ruby-set/set` is a pure-Go implementation of Ruby's `set`. This page records
+a **comparative benchmark** of it against the reference Ruby runtimes, part of
+the ecosystem-wide per-module parity suite.
+
+!!! warning "rbgo no longer runs on this library"
+    It did, from [rbgo#56](https://github.com/go-embedded-ruby/ruby/pull/56)
+    (2026-06-29) until
+    [rbgo#330](https://github.com/go-embedded-ruby/ruby/pull/330) (2026-08-08),
+    which reimplemented `Set` inside rbgo for MRI 4.0 conformance, with the bulk
+    of the Ruby-observable API in its prelude;
+    [rbgo#333](https://github.com/go-embedded-ruby/ruby/pull/333) dropped the
+    now-unused requirement the next day. **The rbgo row below is therefore a
+    historical figure and no longer measures this library** — re-taken on
+    2026-09-30 it reads 8212 ms and 38.2×, because it now times prelude Ruby.
+    See [rbgo#747](https://github.com/go-embedded-ruby/ruby/issues/747).
+
+    The **library-level benchmark further down is unaffected**: it drives this
+    library through its own Go API and never went through rbgo.
 
 ## What is measured
 
-The **same** Ruby script — the same set-algebra workload — building two sets and computing their `|` `&` `-` `^` plus subset/classify — is run under every runtime. `rbgo`'s
-number reflects **this pure-Go library doing the work**; every other column is
-that interpreter's own `set` implementation. So the comparison is the
+The **same** Ruby script — the same set-algebra workload — building two sets and computing their `|` `&` `-` `^` plus subset/classify — is run under every runtime. When the
+figures below were taken, `rbgo`'s number reflected **this pure-Go library doing
+the work**; every other column is that interpreter's own `set` implementation. So the comparison is the
 **Ruby-visible operation**, apples-to-apples across interpreters. The script
 prints a deterministic checksum and its output is checked **byte-identical to
 MRI** before timing.
@@ -28,13 +42,15 @@ MRI** before timing.
 
 | Runtime | time | vs MRI |
 | --- | ---: | ---: |
-| **rbgo** (go-ruby-set) | 2220 | 10.09× |
+| **rbgo** (on go-ruby-set, 2026-06-30 — *no longer the case*) | 2220 | 10.09× |
 | MRI (ruby 4.0.5) | 220 | 1.00× |
 | MRI + YJIT | 220 | 1.00× |
 | JRuby 10.1.0.0 | 1240 | 5.64× |
 | TruffleRuby 34.0.1 | 420 | 1.91× |
 
-rbgo runs on **go-ruby-set** and is **~10x slower than MRI** here (10.09x): the set-algebra loop drives a very high rate of per-element interpreter dispatch through Set's Ruby methods, which is rbgo's most expensive primitive (frame setup + interface dispatch per send). This is the top per-module optimization target for go-ruby-set; output stays byte-identical to MRI.
+When this was measured, rbgo ran on **go-ruby-set** and was **~10x slower than MRI** (10.09x): the set-algebra loop drives a very high rate of per-element interpreter dispatch through Set's Ruby methods, which is rbgo's most expensive primitive (frame setup + interface dispatch per send). Output stayed byte-identical to MRI.
+
+Two things have changed since. rbgo no longer uses this library for `Set`, so the row is no longer about it; and the harness that produced these numbers timed with `/usr/bin/time -p`, whose resolution is 10 ms — which does not affect this row, at 2220 ms, but does affect the small rows in the ecosystem table ([rbgo#748](https://github.com/go-embedded-ruby/ruby/pull/748)).
 
 !!! note "Honest framing"
     JRuby and TruffleRuby are timed **cold, single-shot**, so they carry JVM /
