@@ -13,9 +13,13 @@ This library began life inside [go-embedded-ruby](https://github.com/go-embedded
 **extracted into a reusable standalone library** so that:
 
 - any Go program can import `github.com/go-ruby-set/set` directly, with no Ruby runtime;
-- the dependency runs the *other* way — `rbgo` binds this module as a native
-  module (the same pattern as [go-ruby-yaml](https://github.com/go-ruby-yaml/yaml)),
-  rather than this module depending on the interpreter;
+- the dependency runs the *other* way — an interpreter binds this module as a
+  native module (the pattern [go-ruby-yaml](https://github.com/go-ruby-yaml/yaml)
+  still follows), rather than this module depending on the interpreter. `rbgo`
+  did so from 2026-06-29 until
+  [rbgo#330](https://github.com/go-embedded-ruby/ruby/pull/330) reimplemented
+  `Set` inside the interpreter for MRI 4.0 conformance on 2026-08-08; the library
+  stands on its own either way, which is the point of extracting it;
 - the behaviour is pinned by a **differential oracle** against the system `ruby`,
   independent of any one consumer.
 
