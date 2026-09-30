@@ -591,8 +591,9 @@ slice of Ruby's <code>Set</code> extracted from rbgo's internals is <strong>comp
 <ul>
 <li><strong>No interpreter.</strong> The library implements the deterministic algorithm; it
   never runs arbitrary Ruby. Anything that needs a live binding or evaluation is
-  the consumer's job — that is why <code>rbgo</code> binds this module rather than the
-  reverse.</li>
+  the consumer's job — which is why an interpreter binds this module rather than
+  the reverse. (<code>rbgo</code> did until 2026-08-08; see
+  <a href="../why/">why.md</a> and <a href="https://github.com/go-embedded-ruby/ruby/issues/747">rbgo#747</a>.)</li>
 <li><strong>Reference is reference Ruby (MRI).</strong> Byte-for-byte conformance targets MRI's
   behaviour; differences across MRI releases are matched to the reference used by
   the differential oracle.</li>

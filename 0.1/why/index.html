@@ -575,9 +575,13 @@ live as a standalone Go library, separate from the interpreter.</p>
 <strong>extracted into a reusable standalone library</strong> so that:</p>
 <ul>
 <li>any Go program can import <code>github.com/go-ruby-set/set</code> directly, with no Ruby runtime;</li>
-<li>the dependency runs the <em>other</em> way — <code>rbgo</code> binds this module as a native
-  module (the same pattern as <a href="https://github.com/go-ruby-yaml/yaml">go-ruby-yaml</a>),
-  rather than this module depending on the interpreter;</li>
+<li>the dependency runs the <em>other</em> way — an interpreter binds this module as a
+  native module (the pattern <a href="https://github.com/go-ruby-yaml/yaml">go-ruby-yaml</a>
+  still follows), rather than this module depending on the interpreter. <code>rbgo</code>
+  did so from 2026-06-29 until
+  <a href="https://github.com/go-embedded-ruby/ruby/pull/330">rbgo#330</a> reimplemented
+  <code>Set</code> inside the interpreter for MRI 4.0 conformance on 2026-08-08; the library
+  stands on its own either way, which is the point of extracting it;</li>
 <li>the behaviour is pinned by a <strong>differential oracle</strong> against the system <code>ruby</code>,
   independent of any one consumer.</li>
 </ul>

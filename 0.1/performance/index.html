@@ -720,14 +720,28 @@
 
 
 <h1 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h1>
-<p><code>go-ruby-set/set</code> is the pure-Go library that
-<a href="https://github.com/go-embedded-ruby/ruby"><code>rbgo</code></a> binds for Ruby's <code>set</code>. This
-page records a <strong>comparative benchmark</strong> of that module against the reference
-Ruby runtimes, part of the ecosystem-wide per-module parity suite.</p>
+<p><code>go-ruby-set/set</code> is a pure-Go implementation of Ruby's <code>set</code>. This page records
+a <strong>comparative benchmark</strong> of it against the reference Ruby runtimes, part of
+the ecosystem-wide per-module parity suite.</p>
+<div class="admonition warning">
+<p class="admonition-title">rbgo no longer runs on this library</p>
+<p>It did, from <a href="https://github.com/go-embedded-ruby/ruby/pull/56">rbgo#56</a>
+(2026-06-29) until
+<a href="https://github.com/go-embedded-ruby/ruby/pull/330">rbgo#330</a> (2026-08-08),
+which reimplemented <code>Set</code> inside rbgo for MRI 4.0 conformance, with the bulk
+of the Ruby-observable API in its prelude;
+<a href="https://github.com/go-embedded-ruby/ruby/pull/333">rbgo#333</a> dropped the
+now-unused requirement the next day. <strong>The rbgo row below is therefore a
+historical figure and no longer measures this library</strong> — re-taken on
+2026-09-30 it reads 8212 ms and 38.2×, because it now times prelude Ruby.
+See <a href="https://github.com/go-embedded-ruby/ruby/issues/747">rbgo#747</a>.</p>
+<p>The <strong>library-level benchmark further down is unaffected</strong>: it drives this
+library through its own Go API and never went through rbgo.</p>
+</div>
 <h2 id="what-is-measured">What is measured<a class="headerlink" href="#what-is-measured" title="Permanent link">&para;</a></h2>
-<p>The <strong>same</strong> Ruby script — the same set-algebra workload — building two sets and computing their <code>|</code> <code>&amp;</code> <code>-</code> <code>^</code> plus subset/classify — is run under every runtime. <code>rbgo</code>'s
-number reflects <strong>this pure-Go library doing the work</strong>; every other column is
-that interpreter's own <code>set</code> implementation. So the comparison is the
+<p>The <strong>same</strong> Ruby script — the same set-algebra workload — building two sets and computing their <code>|</code> <code>&amp;</code> <code>-</code> <code>^</code> plus subset/classify — is run under every runtime. When the
+figures below were taken, <code>rbgo</code>'s number reflected <strong>this pure-Go library doing
+the work</strong>; every other column is that interpreter's own <code>set</code> implementation. So the comparison is the
 <strong>Ruby-visible operation</strong>, apples-to-apples across interpreters. The script
 prints a deterministic checksum and its output is checked <strong>byte-identical to
 MRI</strong> before timing.</p>
@@ -753,7 +767,7 @@ MRI</strong> before timing.</p>
 </thead>
 <tbody>
 <tr>
-<td><strong>rbgo</strong> (go-ruby-set)</td>
+<td><strong>rbgo</strong> (on go-ruby-set, 2026-06-30 — <em>no longer the case</em>)</td>
 <td style="text-align: right;">2220</td>
 <td style="text-align: right;">10.09×</td>
 </tr>
@@ -779,7 +793,8 @@ MRI</strong> before timing.</p>
 </tr>
 </tbody>
 </table>
-<p>rbgo runs on <strong>go-ruby-set</strong> and is <strong>~10x slower than MRI</strong> here (10.09x): the set-algebra loop drives a very high rate of per-element interpreter dispatch through Set's Ruby methods, which is rbgo's most expensive primitive (frame setup + interface dispatch per send). This is the top per-module optimization target for go-ruby-set; output stays byte-identical to MRI.</p>
+<p>When this was measured, rbgo ran on <strong>go-ruby-set</strong> and was <strong>~10x slower than MRI</strong> (10.09x): the set-algebra loop drives a very high rate of per-element interpreter dispatch through Set's Ruby methods, which is rbgo's most expensive primitive (frame setup + interface dispatch per send). Output stayed byte-identical to MRI.</p>
+<p>Two things have changed since. rbgo no longer uses this library for <code>Set</code>, so the row is no longer about it; and the harness that produced these numbers timed with <code>/usr/bin/time -p</code>, whose resolution is 10 ms — which does not affect this row, at 2220 ms, but does affect the small rows in the ecosystem table (<a href="https://github.com/go-embedded-ruby/ruby/pull/748">rbgo#748</a>).</p>
 <div class="admonition note">
 <p class="admonition-title">Honest framing</p>
 <p>JRuby and TruffleRuby are timed <strong>cold, single-shot</strong>, so they carry JVM /
