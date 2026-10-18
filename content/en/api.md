@@ -1,18 +1,26 @@
-# Usage & API
+---
+title: "Usage & API"
+weight: 30
+---
+
+# Usage & API {#usage-api}
 
 The public API lives at the module root (`github.com/go-ruby-set/set`). It is **Ruby-shaped but Go-idiomatic**: the method names mirror `Set`'s (`add?` → `AddQ`, `subset?` → `SubsetQ`, `^` → `XorSym`), while the surface follows Go conventions — value types, no global state, an explicit element-identity seam.
 
-!!! success "Status: implemented"
-    The library is built and importable as `github.com/go-ruby-set/set`, bound into
-    `rbgo` as a native module; see [Roadmap](roadmap.md).
+{{< callout type="info" >}}
+**Status: implemented**
 
-## Install
+The library is built and importable as `github.com/go-ruby-set/set`, bound into
+`rbgo` as a native module; see [Roadmap]({{< relref "roadmap.md" >}}).
+{{< /callout >}}
+
+## Install {#install}
 
 ```sh
 go get github.com/go-ruby-set/set
 ```
 
-## Element identity — the Hasher seam
+## Element identity — the Hasher seam {#element-identity-the-hasher-seam}
 
 In MRI a `Set` keys its members by Ruby's `hash` / `eql?` protocol. Go cannot
 know those semantics, so the host supplies them through a **`Hasher`** — a
@@ -27,7 +35,7 @@ byContent := func(e any) any { return fmt.Sprintf("%v", e) }
 s2 := set.NewWith(byContent, "a", "a", "b")  // host hash/eql? — the two "a"s coincide; Size()==2
 ```
 
-## Worked example
+## Worked example {#worked-example}
 
 ```go
 a := set.New(1, 2, 3, 4)
@@ -46,7 +54,7 @@ for _, g := range set.New(1, 2, 3, 4, 5, 6).
 }
 ```
 
-## Surface
+## Surface {#surface}
 
 ```go
 func New(elems ...any) *Set               // identity-keyed (comparable members)
@@ -83,7 +91,7 @@ func (s *Set) Inspect(stringFn func(any) string) string; func (s *Set) String() 
 core, so there is no `SortedSet` type; the faithful equivalent of `Set#sort` is
 `SortedSlice`.
 
-## MRI conformance
+## MRI conformance {#mri-conformance}
 
 A **differential oracle** runs set algebra, the subset/superset/disjoint
 predicates, `classify`, both `divide` forms and the `Set[…]` inspect through both
