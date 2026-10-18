@@ -1,4 +1,9 @@
-# go-ruby-set documentation
+---
+title: "Home"
+weight: 10
+---
+
+# go-ruby-set documentation {#go-ruby-set-documentation}
 
 **Ruby's Set — the unordered, unique collection with full set algebra — in pure Go, no cgo.**
 
@@ -12,13 +17,16 @@ by `rbgo` as a native module — the same pattern as
 [go-ruby-yaml](https://github.com/go-ruby-yaml/yaml). The dependency runs the
 other way: this library has **no dependency on the Ruby runtime**.
 
-!!! success "Status: complete — MRI byte-exact"
-    A faithful pure-Go port of Ruby's `Set`, validated by a **differential oracle**
-    against the system `ruby` — results compared byte-for-byte — at 100%
-    coverage, `gofmt` + `go vet` clean, CI green across the six 64-bit Go targets
-    and three OSes.
+{{< callout type="info" >}}
+**Status: complete — MRI byte-exact**
 
-## Quick taste
+A faithful pure-Go port of Ruby's `Set`, validated by a **differential oracle**
+against the system `ruby` — results compared byte-for-byte — at 100%
+coverage, `gofmt` + `go vet` clean, CI green across the six 64-bit Go targets
+and three OSes.
+{{< /callout >}}
+
+## Quick taste {#quick-taste}
 
 ```go
 a := set.New(1, 2, 3, 4)
@@ -31,7 +39,7 @@ a.XorSym(b)       // Set[1, 2, 5, 6]
 a.SubsetQ(set.New(1, 2, 3, 4, 5)) // true
 ```
 
-## Repositories
+## Repositories {#repositories}
 
 | Repo | What it is |
 | --- | --- |
@@ -40,7 +48,7 @@ a.SubsetQ(set.New(1, 2, 3, 4, 5)) // true
 | [`go-ruby-set.github.io`](https://github.com/go-ruby-set/go-ruby-set.github.io) | the organization landing page (Hugo) |
 | [`brand`](https://github.com/go-ruby-set/brand) | logo and brand assets |
 
-## Principles
+## Principles {#principles}
 
 - **Pure Go, `CGO_ENABLED=0`** — trivial cross-compilation, a single static
   binary, no C toolchain.
@@ -51,11 +59,11 @@ a.SubsetQ(set.New(1, 2, 3, 4, 5)) // true
 - **100% test coverage** is the target, enforced as a CI gate, across 6 arches
   and 3 OSes.
 
-## Where to go next
+## Where to go next {#where-to-go-next}
 
-- [Why pure Go](why.md) — why this slice of Ruby is deterministic enough to live
+- [Why pure Go]({{< relref "why.md" >}}) — why this slice of Ruby is deterministic enough to live
   as a standalone, interpreter-independent Go library.
-- [Usage & API](api.md) — the public surface and worked examples.
-- [Roadmap](roadmap.md) — what is done and what is downstream by design.
+- [Usage & API]({{< relref "api.md" >}}) — the public surface and worked examples.
+- [Roadmap]({{< relref "roadmap.md" >}}) — what is done and what is downstream by design.
 
 Source lives at [github.com/go-ruby-set/set](https://github.com/go-ruby-set/set).

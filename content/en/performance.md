@@ -1,25 +1,33 @@
-# Performance
+---
+title: "Performance"
+weight: 50
+---
+
+# Performance {#performance}
 
 `go-ruby-set/set` is a pure-Go implementation of Ruby's `set`. This page records
 a **comparative benchmark** of it against the reference Ruby runtimes, part of
 the ecosystem-wide per-module parity suite.
 
-!!! warning "rbgo no longer runs on this library"
-    It did, from [rbgo#56](https://github.com/go-embedded-ruby/ruby/pull/56)
-    (2026-06-29) until
-    [rbgo#330](https://github.com/go-embedded-ruby/ruby/pull/330) (2026-08-08),
-    which reimplemented `Set` inside rbgo for MRI 4.0 conformance, with the bulk
-    of the Ruby-observable API in its prelude;
-    [rbgo#333](https://github.com/go-embedded-ruby/ruby/pull/333) dropped the
-    now-unused requirement the next day. **The rbgo row below is therefore a
-    historical figure and no longer measures this library** — re-taken on
-    2026-09-30 it reads 8212 ms and 38.2×, because it now times prelude Ruby.
-    See [rbgo#747](https://github.com/go-embedded-ruby/ruby/issues/747).
+{{< callout type="warning" >}}
+**rbgo no longer runs on this library**
 
-    The **library-level benchmark further down is unaffected**: it drives this
-    library through its own Go API and never went through rbgo.
+It did, from [rbgo#56](https://github.com/go-embedded-ruby/ruby/pull/56)
+(2026-06-29) until
+[rbgo#330](https://github.com/go-embedded-ruby/ruby/pull/330) (2026-08-08),
+which reimplemented `Set` inside rbgo for MRI 4.0 conformance, with the bulk
+of the Ruby-observable API in its prelude;
+[rbgo#333](https://github.com/go-embedded-ruby/ruby/pull/333) dropped the
+now-unused requirement the next day. **The rbgo row below is therefore a
+historical figure and no longer measures this library** — re-taken on
+2026-09-30 it reads 8212 ms and 38.2×, because it now times prelude Ruby.
+See [rbgo#747](https://github.com/go-embedded-ruby/ruby/issues/747).
 
-## What is measured
+The **library-level benchmark further down is unaffected**: it drives this
+library through its own Go API and never went through rbgo.
+{{< /callout >}}
+
+## What is measured {#what-is-measured}
 
 The **same** Ruby script — the same set-algebra workload — building two sets and computing their `|` `&` `-` `^` plus subset/classify — is run under every runtime. When the
 figures below were taken, `rbgo`'s number reflected **this pure-Go library doing
@@ -38,7 +46,7 @@ MRI** before timing.
   (`set.rb` + `run.sh`). Reproduce:
   `RBGO=./rbgo TRUFFLE=truffleruby bash bench/modules/run.sh 5`.
 
-## Result (best of 5, ms)
+## Result (best of 5, ms) {#result-best-of-5-ms}
 
 | Runtime | time | vs MRI |
 | --- | ---: | ---: |
@@ -52,16 +60,19 @@ When this was measured, rbgo ran on **go-ruby-set** and was **~10x slower than M
 
 Two things have changed since. rbgo no longer uses this library for `Set`, so the row is no longer about it; and the harness that produced these numbers timed with `/usr/bin/time -p`, whose resolution is 10 ms — which does not affect this row, at 2220 ms, but does affect the small rows in the ecosystem table ([rbgo#748](https://github.com/go-embedded-ruby/ruby/pull/748)).
 
-!!! note "Honest framing"
-    JRuby and TruffleRuby are timed **cold, single-shot**, so they carry JVM /
-    Graal startup on every run — read them as one-shot `ruby file.rb` costs, the
-    same way `rbgo` and MRI are measured, not as steady-state JIT numbers. Rows
-    that complete in well under ~200 ms carry the most relative noise; treat
-    their ratios as order-of-magnitude. These are **real measured numbers** from
-    the 2026-06-30 run (Apple M-series; `ruby 4.0.5 +PRISM`, `jruby 10.1.0.0`,
-    `truffleruby 34.0.1`) — nothing is fabricated or cherry-picked.
+{{< callout type="info" >}}
+**Honest framing**
 
-## Library-level benchmark (Go API vs runtimes) — 2026-07-03 (specialized hash)
+JRuby and TruffleRuby are timed **cold, single-shot**, so they carry JVM /
+Graal startup on every run — read them as one-shot `ruby file.rb` costs, the
+same way `rbgo` and MRI are measured, not as steady-state JIT numbers. Rows
+that complete in well under ~200 ms carry the most relative noise; treat
+their ratios as order-of-magnitude. These are **real measured numbers** from
+the 2026-06-30 run (Apple M-series; `ruby 4.0.5 +PRISM`, `jruby 10.1.0.0`,
+`truffleruby 34.0.1`) — nothing is fabricated or cherry-picked.
+{{< /callout >}}
+
+## Library-level benchmark (Go API vs runtimes) — 2026-07-03 (specialized hash) {#library-level-benchmark-go-api-vs-runtimes-2026-07-03-specialized-hash}
 
 This section measures the **pure-Go library directly, through its Go API** — not
 the `rbgo` interpreter path recorded above. It isolates the library primitive
@@ -80,7 +91,7 @@ MRI before any timing.
   Interpreter start-up is outside the timed region, so these are operation costs,
   not `ruby file.rb` process costs.
 
-### What changed (specialized-hash membership index)
+### What changed (specialized-hash membership index) {#what-changed-specialized-hash-membership-index}
 
 The previous rework moved the members into two parallel insertion-ordered slices
 (`keys`, `members`) with a membership-only index — but that index was a single
@@ -117,7 +128,7 @@ Before → after `vs MRI` (before = the prior bulk-path result; same host, harne
 | intersection-1000 | 1.11× | **0.78×** | 0.82× | **beats MRI + YJIT** |
 | membership-1000 | 0.41× | **0.28×** | 0.74× | **beats MRI + YJIT** |
 
-#### build-1000
+#### build-1000 {#build-1000}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -127,7 +138,7 @@ Before → after `vs MRI` (before = the prior bulk-path result; same host, harne
 | JRuby | 11710.2 | 0.97× |
 | TruffleRuby | 9649.0 | 0.80× |
 
-#### intersection-1000
+#### intersection-1000 {#intersection-1000}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -137,7 +148,7 @@ Before → after `vs MRI` (before = the prior bulk-path result; same host, harne
 | JRuby | 7125.0 | 0.41× |
 | TruffleRuby | 13555.2 | 0.79× |
 
-#### membership-1000
+#### membership-1000 {#membership-1000}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -147,7 +158,7 @@ Before → after `vs MRI` (before = the prior bulk-path result; same host, harne
 | JRuby | 18216.5 | 0.61× |
 | TruffleRuby | 2517.8 | 0.08× |
 
-#### union-1000
+#### union-1000 {#union-1000}
 
 | Runtime | ns/op | vs MRI |
 | --- | ---: | ---: |
@@ -161,34 +172,43 @@ After specializing the index, **`intersection` (0.78×) and `membership` (0.28×
 now beat both MRI and YJIT**, `union` is at **parity** (1.07× / 1.06× vs YJIT —
 within run-to-run noise), and `build` closes to **1.35×** (was 1.87×).
 
-!!! note "The honest floor on build / union"
-    `build` and `union` stay just above 1× for a **structural** reason, not
-    redundant work — and it is well profiled. The typed-map dedup **on its own**
-    is already ~MRI parity (a pre-sized `map[int64]` read+insert of 1000 keys
-    measures ~12.8 µs, next to MRI's ~12.1 µs `build`). The residual ~0.3× is the
-    **two parallel insertion-order slices** Go must maintain because Go's `map`
-    is *not* insertion-ordered — bookkeeping MRI gets for free from its natively
-    insertion-ordered `Hash`. Closing it further would mean building a custom
-    insertion-ordered hash table (re-implementing what the slices + map already
-    are) for a sub-microsecond-per-op gain; the generic-`any` hashing that used to
-    dominate is now gone. This is the honest wall for these two ops.
+{{< callout type="info" >}}
+**The honest floor on build / union**
 
-!!! note "Reproduce"
-    The harness is committed under
-    [`benchmarks/`](https://github.com/go-ruby-set/docs/tree/main/benchmarks):
-    a self-contained Go driver (`go/`, which pins this library's feature commit
-    via `go.mod`), the equivalent `ruby/set.rb` workload, and `run.sh`. Run
-    `OUTER=60 WARM=5 bash benchmarks/run.sh`; env `OUTER`/`WARM` tune the pass
-    budget and `RUBY`/`JRUBY`/`TRUFFLERUBY` select the runtime binaries.
+`build` and `union` stay just above 1× for a **structural** reason, not
+redundant work — and it is well profiled. The typed-map dedup **on its own**
+is already ~MRI parity (a pre-sized `map[int64]` read+insert of 1000 keys
+measures ~12.8 µs, next to MRI's ~12.1 µs `build`). The residual ~0.3× is the
+**two parallel insertion-order slices** Go must maintain because Go's `map`
+is *not* insertion-ordered — bookkeeping MRI gets for free from its natively
+insertion-ordered `Hash`. Closing it further would mean building a custom
+insertion-ordered hash table (re-implementing what the slices + map already
+are) for a sub-microsecond-per-op gain; the generic-`any` hashing that used to
+dominate is now gone. This is the honest wall for these two ops.
+{{< /callout >}}
 
-!!! warning "Warm-up budget & noise — honest framing"
-    Numbers reflect a **fixed warm-process budget** (5 warm-up + 60 timed passes
-    in one process, best pass reported). The JVM/GraalVM JITs (JRuby, TruffleRuby)
-    may need a larger warm-up to reach steady state, so their columns can
-    **understate** peak throughput — most visibly TruffleRuby on the shortest
-    loops. Sub-microsecond rows carry the most relative noise; treat those ratios
-    as order-of-magnitude, and read `union` vs YJIT (1.06×) as parity. Every
-    number here is a **real measured value** from the dated run above — nothing is
-    fabricated, estimated, or cherry-picked. The go-ruby column is the pure-Go
-    library; every other column is that interpreter's own stdlib doing the
-    equivalent work.
+{{< callout type="info" >}}
+**Reproduce**
+
+The harness is committed under
+[`benchmarks/`](https://github.com/go-ruby-set/docs/tree/main/benchmarks):
+a self-contained Go driver (`go/`, which pins this library's feature commit
+via `go.mod`), the equivalent `ruby/set.rb` workload, and `run.sh`. Run
+`OUTER=60 WARM=5 bash benchmarks/run.sh`; env `OUTER`/`WARM` tune the pass
+budget and `RUBY`/`JRUBY`/`TRUFFLERUBY` select the runtime binaries.
+{{< /callout >}}
+
+{{< callout type="warning" >}}
+**Warm-up budget & noise — honest framing**
+
+Numbers reflect a **fixed warm-process budget** (5 warm-up + 60 timed passes
+in one process, best pass reported). The JVM/GraalVM JITs (JRuby, TruffleRuby)
+may need a larger warm-up to reach steady state, so their columns can
+**understate** peak throughput — most visibly TruffleRuby on the shortest
+loops. Sub-microsecond rows carry the most relative noise; treat those ratios
+as order-of-magnitude, and read `union` vs YJIT (1.06×) as parity. Every
+number here is a **real measured value** from the dated run above — nothing is
+fabricated, estimated, or cherry-picked. The go-ruby column is the pure-Go
+library; every other column is that interpreter's own stdlib doing the
+equivalent work.
+{{< /callout >}}
